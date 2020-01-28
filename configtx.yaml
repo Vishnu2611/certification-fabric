@@ -1,0 +1,135 @@
+    Organizations:
+        - &OrdererOrg
+            Name: OrdererMSP
+            ID: OrdererMSP
+            MSPDir: crypto-config/ordererOrganizations/certverification.com/msp
+            Policies:
+                Readers:
+                    Type: Signature
+                    Rule: "OR('OrdererMSP.member')"
+                Writers:
+                    Type: Signature
+                    Rule: "OR('OrdererMSP.member')"
+                Admins:
+                    Type: Signature
+                    Rule: "OR('OrdererMSP.admin')"
+        - &Org1
+            Name: CPAMSP
+            ID: CPAMSP
+            MSPDir: crypto-config/peerOrganizations/CPA.certverification.com/msp
+            Policies:
+                Readers:
+                    Type: Signature
+                    Rule: "OR('CPAMSP.admin', 'CPAMSP.peer', 'CPAMSP.client')"
+                Writers:
+                    Type: Signature
+                    Rule: "OR('CPAMSP.admin', 'CPAMSP.client')"
+                Admins:
+                    Type: Signature
+                    Rule: "OR('CPAMSP.admin')"
+            AnchorPeers:
+                - Host: peer0.CPA.certverification.com
+                  Port: 7051
+        - &Org2
+            Name: VerifierMSP
+            ID: VerifierMSP
+            MSPDir: crypto-config/peerOrganizations/verifier.certverification.com/msp
+            Policies:
+                Readers:
+                    Type: Signature
+                    Rule: "OR('VerifierMSP.admin', 'VerifierMSP.peer', 'VerifierMSP.client')"
+                Writers:
+                    Type: Signature
+                    Rule: "OR('VerifierMSP.admin', 'VerifierMSP.client')"
+                Admins:
+                    Type: Signature
+                    Rule: "OR('VerifierMSP.admin')"
+            AnchorPeers:
+                - Host: peer0.verifier.certverification.com
+    Capabilities:
+        Channel: &ChannelCapabilities
+            V1_4_3: true
+            V1_3: false
+            V1_1: false
+        Orderer: &OrdererCapabilities
+            V1_4_2: true
+            V1_1: false
+        Application: &ApplicationCapabilities
+            V1_4_2: true
+            V1_3: false
+            V1_2: false
+            V1_1: false
+    Application: &ApplicationDefaults
+        Organizations:
+        Policies:
+            Readers:
+                Type: ImplicitMeta
+                Rule: "ANY Readers"
+            Writers:
+                Type: ImplicitMeta
+                Rule: "ANY Writers"
+            Admins:
+                Type: ImplicitMeta
+                Rule: "MAJORITY Admins"
+        Capabilities:
+            <<: *ApplicationCapabilities
+    Orderer: &OrdererDefaults
+        OrdererType: solo
+        Addresses:
+            - orderer.certverification.com:7050
+        BatchTimeout: 2s
+        BatchSize:
+            MaxMessageCount: 10
+            AbsoluteMaxBytes: 99 MB
+            PreferredMaxBytes: 512 KB
+        Organizations:
+        Policies:
+            Readers:
+                Type: ImplicitMeta
+                Rule: "ANY Readers"
+            Writers:
+                Type: ImplicitMeta
+                Rule: "ANY Writers"
+            Admins:
+                Type: ImplicitMeta
+                Rule: "MAJORITY Admins"
+            BlockValidation:
+                Type: ImplicitMeta
+                Rule: "ANY Writers"
+    Channel: &ChannelDefaults
+        Policies:
+            Readers:
+                Type: ImplicitMeta
+                Rule: "ANY Readers"
+            Writers:
+                Type: ImplicitMeta
+                Rule: "ANY Writers"
+            Admins:
+                Type: ImplicitMeta
+                Rule: "MAJORITY Admins"
+        Capabilities:
+            <<: *ChannelCapabilities
+    Profiles:
+        CertVerificationGenesis:
+            <<: *ChannelDefaults
+            Orderer:
+                <<: *OrdererDefaults
+                Organizations:
+                    - *OrdererOrg
+                Capabilities:
+                    <<: *OrdererCapabilities
+            Consortiums:
+                SampleConsortium:
+                    Organizations:
+                        - *Org1
+                        - *Org2
+        CV_Channel:
+            Consortium: SampleConsortium
+            <<: *ChannelDefaults
+            Application:
+                <<: *ApplicationDefaults
+                Organizations:
+                    - *Org1
+                    - *Org2
+                Capabilities:
+                    <<: *ApplicationCapabilities

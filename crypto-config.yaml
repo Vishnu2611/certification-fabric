@@ -1,0 +1,22 @@
+    OrdererOrgs:
+        - Name: Orderer
+          Domain: certverification.com
+          EnableNodeOUs: true
+          Specs:
+            - Hostname: orderer
+    PeerOrgs:
+        - Name: CPA
+          Domain: CPA.certverification.com
+          EnableNodeOUs: true
+          Template:
+            Count: 2
+          Users:
+            Count: 1
+        - Name: verifier
+          Domain: verifier.certverification.com
+          EnableNodeOUs: true
+          Template:
+            Count: 2
+          Users:
+            Count: 1
+    
