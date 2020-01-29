@@ -114,7 +114,7 @@ services:
       - peer1.verifiercouchdb
     networks:
       - cert
- 
+
   peer1.verifiercouchdb:
     container_name: peer1.verifiercouchdb
     image: hyperledger/fabric-couchdb
