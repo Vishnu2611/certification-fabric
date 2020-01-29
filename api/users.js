@@ -13,6 +13,7 @@ const register = async (body)=> {
             const newuser =  new user({
                 companyName: body.companyName,
                 employeeId: body.employeeId,
+                role: body.role,
                 password: md5(body.password)
             });
             newuser.save().then(item => resolve(item)).catch(err => reject(err));
@@ -27,7 +28,7 @@ const register = async (body)=> {
         mongo.connect(db,{useNewUrlParser:true, useCreateIndex: true, useFindAndModify: true, useUnifiedTopology: true })
         .then(async ()=>{
             console.log("Database Connected!!")
-            const info = await user.findOne({employeeId: body.employeeId}).catch((error) => { reject(error) });
+            const info = await user.findOne({employeeId: body.employeeId,role: body.role}).catch((error) => { reject(error) });
             if(!info){
                 let response = {};
                 response.message = "user does not exists";
@@ -51,8 +52,29 @@ const register = async (body)=> {
         });
     });
  }
+ const applayCert = async (body)=> {
+    return new Promise((resolve, reject) => {
+        const db = "mongodb://localhost:27017/OrderManagement";
+        mongo.connect(db,{useNewUrlParser:true, useCreateIndex: true, useFindAndModify: true, useUnifiedTopology: true })
+        .then(async () => {
+            console.log("Database Connected!!");
+            const newcert =  new cert({
+                name: body.name,
+                age: body.age,
+                email: body.email,
+                provider: body.provider
+                owner: body.owner
+                type: body.type
+                companyName: body.companyName
+            });
+            newcert.save().then(item => resolve(item)).catch(err => reject(err));
+        })
+        .catch((error)=>{reject(error)});
+    });
+}
 
 module.exports = {
     register: register,
-    login: login
+    login: login,
+    applayCert:applayCert
 }

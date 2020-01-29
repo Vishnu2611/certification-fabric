@@ -26,6 +26,38 @@ const UserSchema = new Schema({
             if(value.includes("password"))
                 throw new Error("Password contains Password!!!!");
         }
+    },
+    role:{
+        type:String,
+        required:true
+    }
+});
+const CertSchema = new Schema({
+
+    name: {
+        type: String,
+        required: true
+    },
+    age: {
+        type: Number,
+        required: true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    provider: {
+        type: String,
+        required: true
+    },
+    owner: {
+        type: String,
+        required: true
+    },
+    type: {
+        type: String,
+        required: true
     }
 });
 

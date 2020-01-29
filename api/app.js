@@ -129,10 +129,12 @@ app.post("/signup", async function(req, res) {
   var username = req.body.employeeId;
   var orgName = req.body.companyName;
   var password = req.body.password;
+  var role=req.body.role;
   logger.debug("End point : /signup");
   logger.debug("Employee Id : " + username);
   logger.debug("Company Name  : " + orgName);
   logger.debug("Password  : " + password);
+  logger.debug("role :"+ role);
   if (!username) {
     res.json(getErrorMessage("'Employee Id'"));
     return;
@@ -143,6 +145,10 @@ app.post("/signup", async function(req, res) {
   }
   if (!password) {
     res.json(getErrorMessage("'Password'"));
+    return;
+  }
+  if (!role) {
+    res.json(getErrorMessage("'Role'"));
     return;
   }
   try{
@@ -186,15 +192,21 @@ app.post("/login", async function(req, res) {
   let response = {};
   var username = req.body.employeeId;
   const password = req.body.password;
+  var role=req.body.role;
   logger.debug("End point : /users");
   logger.debug("User name : " + username);
   logger.debug("Password  : " + password);
+  logger.debug("role :"+ role);
   if (!username) {
     res.json(getErrorMessage("'username'"));
     return;
   }
   if (!password) {
     res.json(getErrorMessage("'password'"));
+    return;
+  }
+  if (!role) {
+    res.json(getErrorMessage("'Role'"));
     return;
   }
   try{
@@ -205,7 +217,8 @@ app.post("/login", async function(req, res) {
 			Math.floor(Date.now() / 1000) +
 			parseInt(hfc.getConfigSetting("jwt_expiretime")),
 		  username: info.employeeId,
-		  orgName: info.companyName
+      orgName: info.companyName,
+      role: info.role
 		},
 		app.get("secret")
     );
@@ -222,6 +235,56 @@ app.post("/login", async function(req, res) {
     return res.json(response);
   }
 });
+
+
+// Apply for certificate (student)
+app.post("/certificate/applay",async function(req,res){
+  var name = req.body.name;
+  var age = req.body.age;
+  var email = req.body.email;
+  var provider = req.body.provider;
+  var owner = req.body.owner;
+  var type = req.body.type;
+
+  if (!name) {
+    res.json(getErrorMessage("'name'"));
+    return;
+  }
+  if (!age) {
+    res.json(getErrorMessage("'age'"));
+    return;
+  }
+  if (!email) {
+    res.json(getErrorMessage("'email'"));
+    return;
+  }
+  if (!provider) {
+    res.json(getErrorMessage("'provider'"));
+    return;
+  }
+  if (!owner) {
+    res.json(getErrorMessage("'owner'"));
+    return;
+  }
+  if (!type) {
+    res.json(getErrorMessage("'type'"));
+    return;
+  }
+  try{
+    await user.applayCert(req.body)
+    let response = {};
+      response.message = "certificate applied successfully";
+      response.status = "success";
+      return res.json(response);
+    }
+    catch(error) {
+    let response = {};
+      response.message = "failed to apply";
+      response.status = "failure";
+      return res.json(response);
+    }
+})
+
 
 // Register and enroll user
 app.post("/users", async function(req, res) {
@@ -443,6 +506,8 @@ app.post("/channels/:channelName/chaincodes", async function(req, res) {
   );
   res.send(message);
 });
+
+
 // Invoke transaction on chaincode on target peers
 app.post("/channels/:channelName/chaincodes/:chaincodeName", async function(
   req,
