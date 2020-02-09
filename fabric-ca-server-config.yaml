@@ -243,12 +243,16 @@ ldap:
 # which are always stored in lower case.
 #############################################################################
 affiliations:
-   cpa:
+   auditor:
       - department1
       - department2
-   verifier:
+   auctiondepartment:
       - department1
       - department2
+   bidder:
+      - department1
+      - department2
+
 #############################################################################
 #  Signing section
 #

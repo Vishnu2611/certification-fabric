@@ -16,7 +16,7 @@ class Certificate extends Contract {
         owner
     ) {
         let certificate = {
-            id: Math.floor(Date.now() / 1000),
+            id: (Math.floor(Date.now() / 1000)).toString(),
             name,
             age,
             email,
@@ -49,10 +49,10 @@ class Certificate extends Contract {
             while(true) {
                 let res = await resultIterator.next();
                 if(res.value && res.value.toString()) {
-                    let order = {};
+                    let certificate = {};
                     certificate.Key = res.value.Key;
                     certificate.Record = JSON.parse(res.value.value.toString("utf8"));
-                    certificates.push(order);
+                    certificates.push(certificate);
                 }
                 if (res.done) {
                     await resultIterator.close();

@@ -4,18 +4,38 @@ const mongo = require('mongoose');
 const Schema = mongo.Schema;
 
 const UserSchema = new Schema({
-    companyName: {
+    firstName: {
         type: String,
-        required: true,
-        unique: true,
         validate(value){
             if(!validator.isAlpha(value))
-                throw new Error("Company name is Invalid");
+                throw new Error("First name is Invalid");
         }
     },
-    employeeId:{
+    middleName: {
         type: String,
-        required: true
+        validate(value){
+            if(!validator.isAlpha(value))
+                throw new Error("Middle name is Invalid");
+        }
+    },
+    lastName: {
+        type: String,
+        validate(value){
+            if(!validator.isAlpha(value))
+                throw new Error("Last name is Invalid");
+        }
+    },
+    email:{
+        type: String,
+        required: true,
+        unique: true
+    },
+    phoneNumber: {
+        type: String,
+        validate(value){
+            if(!validator.isNumeric(value))
+                throw new Error("Phone Number is Invalid");
+        }
     },
     password:{
         type: String,
@@ -27,35 +47,22 @@ const UserSchema = new Schema({
                 throw new Error("Password contains Password!!!!");
         }
     },
-    role:{
-        type:String,
-        required:true
-    }
-});
-const CertSchema = new Schema({
-
-    name: {
+    companyName: {
         type: String,
-        required: true
+        validate(value){
+            if(!validator.isAlpha(value))
+                throw new Error("Company name is Invalid");
+        }
     },
-    age: {
-        type: Number,
-        required: true
-    },
-    email: {
+    role: {
         type: String,
         required: true,
-        unique: true
+        validate(value){
+            if(!validator.isAlpha(value))
+                throw new Error("Company name is Invalid");
+        }
     },
-    provider: {
-        type: String,
-        required: true
-    },
-    owner: {
-        type: String,
-        required: true
-    },
-    type: {
+    orgName: {
         type: String,
         required: true
     }

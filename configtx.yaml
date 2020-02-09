@@ -2,7 +2,7 @@
         - &OrdererOrg
             Name: OrdererMSP
             ID: OrdererMSP
-            MSPDir: crypto-config/ordererOrganizations/certverification.com/msp
+            MSPDir: crypto-config/ordererOrganizations/auction.com/msp
             Policies:
                 Readers:
                     Type: Signature
@@ -14,38 +14,56 @@
                     Type: Signature
                     Rule: "OR('OrdererMSP.admin')"
         - &Org1
-            Name: CPAMSP
-            ID: CPAMSP
-            MSPDir: crypto-config/peerOrganizations/CPA.certverification.com/msp
+            Name: AuditorMSP
+            ID: AuditorMSP
+            MSPDir: crypto-config/peerOrganizations/auditor.auction.com/msp
             Policies:
                 Readers:
                     Type: Signature
-                    Rule: "OR('CPAMSP.admin', 'CPAMSP.peer', 'CPAMSP.client')"
+                    Rule: "OR('AuditorMSP.admin', 'AuditorMSP.peer', 'AuditorMSP.client')"
                 Writers:
                     Type: Signature
-                    Rule: "OR('CPAMSP.admin', 'CPAMSP.client')"
+                    Rule: "OR('AuditorMSP.admin', 'AuditorMSP.client')"
                 Admins:
                     Type: Signature
-                    Rule: "OR('CPAMSP.admin')"
+                    Rule: "OR('AuditorMSP.admin')"
             AnchorPeers:
-                - Host: peer0.CPA.certverification.com
+                - Host: peer0.auditor.auction.com
                   Port: 7051
         - &Org2
-            Name: VerifierMSP
-            ID: VerifierMSP
-            MSPDir: crypto-config/peerOrganizations/verifier.certverification.com/msp
+            Name: AuctiondepartmentMSP
+            ID: AuctiondepartmentMSP
+            MSPDir: crypto-config/peerOrganizations/auctiondepartment.auction.com/msp
             Policies:
                 Readers:
                     Type: Signature
-                    Rule: "OR('VerifierMSP.admin', 'VerifierMSP.peer', 'VerifierMSP.client')"
+                    Rule: "OR('AuctiondepartmentMSP.admin', 'AuctiondepartmentMSP.peer', 'AuctiondepartmentMSP.client')"
                 Writers:
                     Type: Signature
-                    Rule: "OR('VerifierMSP.admin', 'VerifierMSP.client')"
+                    Rule: "OR('AuctiondepartmentMSP.admin', 'AuctiondepartmentMSP.client')"
                 Admins:
                     Type: Signature
-                    Rule: "OR('VerifierMSP.admin')"
+                    Rule: "OR('AuctiondepartmentMSP.admin')"
             AnchorPeers:
-                - Host: peer0.verifier.certverification.com
+                - Host: peer0.auctiondepartment.auction.com
+                  Port: 9051
+        - &Org3
+            Name: BidderMSP
+            ID: BidderMSP
+            MSPDir: crypto-config/peerOrganizations/bidder.auction.com/msp
+            Policies:
+                Readers:
+                    Type: Signature
+                    Rule: "OR('BidderMSP.admin', 'BidderMSP.peer', 'BidderMSP.client')"
+                Writers:
+                    Type: Signature
+                    Rule: "OR('BidderMSP.admin', 'BidderMSP.client')"
+                Admins:
+                    Type: Signature
+                    Rule: "OR('BidderMSP.admin')"
+            AnchorPeers:
+                - Host: peer0.bidder.auction.com
+                  Port: 11051
     Capabilities:
         Channel: &ChannelCapabilities
             V1_4_3: true
@@ -76,7 +94,7 @@
     Orderer: &OrdererDefaults
         OrdererType: solo
         Addresses:
-            - orderer.certverification.com:7050
+            - orderer.auction.com:7050
         BatchTimeout: 2s
         BatchSize:
             MaxMessageCount: 10
@@ -110,7 +128,7 @@
         Capabilities:
             <<: *ChannelCapabilities
     Profiles:
-        CertVerificationGenesis:
+        AuctionGenesis:
             <<: *ChannelDefaults
             Orderer:
                 <<: *OrdererDefaults
@@ -123,7 +141,8 @@
                     Organizations:
                         - *Org1
                         - *Org2
-        CV_Channel:
+                        - *Org3
+        Auction_Channel:
             Consortium: SampleConsortium
             <<: *ChannelDefaults
             Application:
@@ -131,5 +150,6 @@
                 Organizations:
                     - *Org1
                     - *Org2
+                    - *Org3
                 Capabilities:
                     <<: *ApplicationCapabilities

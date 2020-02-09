@@ -1,8 +1,10 @@
-./bin/configtxgen -profile CertVerificationGenesis -channelID mychannel -outputBlock ./channel-artifacts/genesis.block
+./bin/configtxgen -profile AuctionGenesis -channelID mychannel -outputBlock ./channel-artifacts/genesis.block
 
-./bin/configtxgen -profile CV_Channel -outputCreateChannelTx ./channel-artifacts/CV_Channel.tx -channelID cvchannel
+./bin/configtxgen -profile Auction_Channel -outputCreateChannelTx ./channel-artifacts/Auction_Channel.tx -channelID auctionchannel
 
 
-./bin/configtxgen -profile CV_Channel -outputAnchorPeersUpdate ./channel-artifacts/CPAMSP_Channelanchors.tx -channelID cvchannel -asOrg CPAMSP
+./bin/configtxgen -profile Auction_Channel -outputAnchorPeersUpdate ./channel-artifacts/Auditor_Channelanchors.tx -channelID auctionchannel -asOrg AuditorMSP
 
-./bin/configtxgen -profile CV_Channel -outputAnchorPeersUpdate ./channel-artifacts/VerifierMSP_Channelanchors.tx -channelID cvchannel -asOrg VerifierMSP
+./bin/configtxgen -profile Auction_Channel -outputAnchorPeersUpdate ./channel-artifacts/Auctiondepartment_Channelanchors.tx -channelID auctionchannel -asOrg AuctiondepartmentMSP
+
+./bin/configtxgen -profile Auction_Channel -outputAnchorPeersUpdate ./channel-artifacts/Bidder_Channelanchors.tx -channelID auctionchannel -asOrg BidderMSP

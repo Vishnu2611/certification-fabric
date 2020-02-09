@@ -54,11 +54,12 @@ const instantiateChaincode = async function(peers, channelName, chaincodeName, c
 			// The policy can be fulfilled when members from both orgs signed.
 			'endorsement-policy': {
 			        identities: [
-					{ role: { name: 'member', mspId: 'AudiMSP' }},
-					{ role: { name: 'member', mspId: 'MrfMSP' }}
+					{ role: { name: 'member', mspId: 'AuditorMSP' }},
+					{ role: { name: 'member', mspId: 'AuctiondepartmentMSP' }},
+					{ role: { name: 'member', mspId: 'BidderMSP' }}
 			        ],
 			        policy: {
-					'2-of':[{ 'signed-by': 0 }, { 'signed-by': 1 }]
+					'3-of':[{ 'signed-by': 0 }, { 'signed-by': 1 }, { 'signed-by': 2 }]
 			        }
 		        }
 		};
@@ -66,7 +67,7 @@ const instantiateChaincode = async function(peers, channelName, chaincodeName, c
 		if (functionName)
 			request.fcn = functionName;
 
-		let results = await channel.sendInstantiateProposal(request, 60000); //instantiate takes much longer
+		let results = await channel.sendInstantiateProposal(request, 120000); //instantiate takes much longer
 
 		// the returned object has both the endorsement results
 		// and the actual proposal, the proposal will be needed

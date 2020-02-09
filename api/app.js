@@ -28,7 +28,6 @@ var jwt = require("jsonwebtoken");
 var bearerToken = require("express-bearer-token");
 var cors = require("cors");
 const _ = require("lodash");
-const user = require("./users");
 
 require("./config.js");
 var hfc = require("fabric-client");
@@ -41,6 +40,10 @@ var install = require("./app/install-chaincode.js");
 var instantiate = require("./app/instantiate-chaincode.js");
 var invoke = require("./app/invoke-transaction.js");
 var query = require("./app/query.js");
+const user = require("./controller/users");
+const auction = require("./controller/auction");
+const def = require("./config/config");
+
 var host = process.env.HOST || hfc.getConfigSetting("host");
 var port = process.env.PORT || hfc.getConfigSetting("port");
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,16 +65,25 @@ app.use(
   expressJWT({
     secret: "thisismysecret"
   }).unless({
-    path: ["/users", "/signup", "/login"]
+    path: ["/signup", "/login","/certificate/pending","/certificate/approved","/certificate/rejected","/certificate/apply","/channels/:channelName/chaincodes/:chaincodeName","/channels/:channelName/chaincodes/:chaincodeName"]
   })
 );
 app.use(bearerToken());
 app.use(function(req, res, next) {
   logger.debug(" ------>>>>>> new request for %s", req.originalUrl);
   if (
-    req.originalUrl.indexOf("/users") >= 0 ||
     req.originalUrl.indexOf("/signup") >= 0 ||
-    req.originalUrl.indexOf("/login") >= 0
+    req.originalUrl.indexOf("/login") >= 0 ||
+    req.originalUrl.indexOf("/certificate/pending") >= 0 ||
+    req.originalUrl.indexOf("/certificate/approved") >= 0 ||
+    req.originalUrl.indexOf("/certificate/rejected") >= 0 ||
+    req.originalUrl.indexOf("/certificate/apply") >= 0 ||
+    req.originalUrl.indexOf("/channels/:channelName/chaincodes/:chaincodeName") >= 0 ||
+    req.originalUrl.indexOf("/channels/:channelName/chaincodes/:chaincodeName") >= 0
+
+
+
+
   ) {
     return next();
   }
@@ -107,7 +119,12 @@ app.use(function(req, res, next) {
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// START SERVER /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-var server = http.createServer(app).listen(port, function() {});
+var server = http.createServer(app).listen(port, async function() {
+  console.log("Starting existing auctions");
+  const result = await auction.serverStart();
+  if(result === 0)
+      console.log("No existing auction to start!!");
+});
 logger.info("****************** SERVER STARTED ************************");
 logger.info("***************  http://%s:%s  ******************", host, port);
 server.timeout = 240000;
@@ -126,34 +143,68 @@ function getErrorMessage(field) {
 //Login appi
 
 app.post("/signup", async function(req, res) {
-  var username = req.body.employeeId;
-  var orgName = req.body.companyName;
-  var password = req.body.password;
+  var username = req.body.email
+  var orgName
   var role=req.body.role;
+  let info;
   logger.debug("End point : /signup");
-  logger.debug("Employee Id : " + username);
-  logger.debug("Company Name  : " + orgName);
-  logger.debug("Password  : " + password);
-  logger.debug("role :"+ role);
-  if (!username) {
-    res.json(getErrorMessage("'Employee Id'"));
+  logger.debug("First Name : " + req.body.firstName);
+  logger.debug("Last Name  : " + req.body.lastName);
+  logger.debug("Email  : " + req.body.email);
+  logger.debug("Phone Number : " + req.body.phoneNumber);
+  logger.debug("Password  : " + req.body.password);
+  logger.debug("Role  : " + req.body.role);
+  if (!req.body.firstName) {
+    res.json(getErrorMessage("'First Name'"));
     return;
   }
-  if (!orgName) {
-    res.json(getErrorMessage("'Company Name'"));
+  if (!req.body.middleName) {
+    res.json(getErrorMessage("'Middle Name'"));
     return;
   }
-  if (!password) {
-    res.json(getErrorMessage("'Password'"));
+  if (!req.body.lastName) {
+    res.json(getErrorMessage("'Last Name'"));
     return;
   }
-  if (!role) {
+  if (!req.body.email) {
+    res.json(getErrorMessage("'Email"));
+    return;
+  }
+  if (!req.body.phoneNumber) {
+    res.json(getErrorMessage("'Phone Number'"));
+    return;
+  }
+  if (!req.body.password) {
+    res.json(getErrorMessage("'password'"));
+    return;
+  }
+  if (!req.body.role) {
     res.json(getErrorMessage("'Role'"));
     return;
   }
+  if (role === "auditor")
+    orgName = "Auditor";
+  else if (role === "auctiondepartment")
+    orgName = "Auctiondepartment";
+  else if (role === "bidder")
+    orgName = "Bidder"
+  else {
+    let response = {};
+    response.message = "Invalid Role";
+    response.status = "failure";
+    return res.json(response);
+  }
   try{
-	await user.register(req.body)
-  let response = await helper.getRegisteredUser(username, orgName, true);
+    info = await user.register(req.body,orgName);
+  }
+  catch(error){
+    let response = {};
+    response.message = "Mongo Error" + error;
+    response.status = "failure";
+    return res.json(response);
+  }
+  try{
+  let response = await helper.getRegisteredUser(info.email, info.orgName, true);
 	logger.debug(
 	  "-- returned from registering the username %s for organization %s",
 	  username,
@@ -180,33 +231,27 @@ app.post("/signup", async function(req, res) {
 	}
   }
   catch(error) {
-	let response = {};
-    response.message = "user exists";
+	  let response = {};
+    response.message = "user exists in wallet";
     response.status = "failure";
     return res.json(response);
   }
 });
 
-// Register and enroll user
+// Login user
 app.post("/login", async function(req, res) {
   let response = {};
-  var username = req.body.employeeId;
+  var username = req.body.email;
   const password = req.body.password;
-  var role=req.body.role;
   logger.debug("End point : /users");
-  logger.debug("User name : " + username);
+  logger.debug("Email : " + username);
   logger.debug("Password  : " + password);
-  logger.debug("role :"+ role);
   if (!username) {
-    res.json(getErrorMessage("'username'"));
+    res.json(getErrorMessage("'email'"));
     return;
   }
   if (!password) {
     res.json(getErrorMessage("'password'"));
-    return;
-  }
-  if (!role) {
-    res.json(getErrorMessage("'Role'"));
     return;
   }
   try{
@@ -216,8 +261,9 @@ app.post("/login", async function(req, res) {
 		  exp:
 			Math.floor(Date.now() / 1000) +
 			parseInt(hfc.getConfigSetting("jwt_expiretime")),
-		  username: info.employeeId,
-      orgName: info.companyName,
+		  username: info.email,
+      name: info.firstName + info.middleName + info.lastName,
+      orgName: info.orgName,
       role: info.role
 		},
 		app.get("secret")
@@ -236,106 +282,133 @@ app.post("/login", async function(req, res) {
   }
 });
 
+// Create Auction
+app.post("/createAuction",async function(req,res){
 
-// Apply for certificate (student)
-app.post("/certificate/applay",async function(req,res){
-  var name = req.body.name;
-  var age = req.body.age;
-  var email = req.body.email;
-  var provider = req.body.provider;
-  var owner = req.body.owner;
-  var type = req.body.type;
+  logger.debug("End point : /createAuction");
+  logger.debug("auctionName :"+req.body.auctionName);
+  logger.debug("items :"+req.body.items);
+  logger.debug("basePrice :"+req.body.basePrice);
+  logger.debug("owner :"+req.username);
+  logger.debug("endTime :"+req.body.endTime);
 
-  if (!name) {
-    res.json(getErrorMessage("'name'"));
+  if(!req.body.auctionName){
+    res.json(getErrorMessage("'Auction Name'"));
     return;
   }
-  if (!age) {
-    res.json(getErrorMessage("'age'"));
+  if(!req.body.items){
+    res.json(getErrorMessage("'Items'"));
     return;
   }
-  if (!email) {
-    res.json(getErrorMessage("'email'"));
+  if(!req.body.basePrice){
+    res.json(getErrorMessage("'Base Price'"));
     return;
   }
-  if (!provider) {
-    res.json(getErrorMessage("'provider'"));
-    return;
-  }
-  if (!owner) {
-    res.json(getErrorMessage("'owner'"));
-    return;
-  }
-  if (!type) {
-    res.json(getErrorMessage("'type'"));
+  if(!req.body.endTime){
+    res.json(getErrorMessage("'End Time'"));
     return;
   }
   try{
-    await user.applayCert(req.body)
-    let response = {};
-      response.message = "certificate applied successfully";
+    if(req.orgname === "Auctiondepartment"){
+      await auction.startAuction(req.body, req.username, req.orgname);
+      let response = {};
+      response.message = "stored in mongo db";
       response.status = "success";
       return res.json(response);
     }
-    catch(error) {
+    else
+      throw new Error ("Invalid operation, Only allowed by auctiondepartment employee!!");
+  }
+  catch(error){
     let response = {};
-      response.message = "failed to apply";
-      response.status = "failure";
-      return res.json(response);
-    }
+    response.message = "Mongo Error" + " " + error;
+    response.status = "failure";
+    return res.json(response);
+  }
 })
 
+// show pending certificats
 
-// Register and enroll user
-app.post("/users", async function(req, res) {
-  var username = req.body.username;
-  var orgName = req.body.orgName;
-  logger.debug("End point : /users");
-  logger.debug("User name : " + username);
-  logger.debug("Org name  : " + orgName);
-  if (!username) {
-    res.json(getErrorMessage("'username'"));
-    return;
-  }
-  if (!orgName) {
-    res.json(getErrorMessage("'orgName'"));
-    return;
-  }
-  var token = jwt.sign(
-    {
-      exp:
-        Math.floor(Date.now() / 1000) +
-        parseInt(hfc.getConfigSetting("jwt_expiretime")),
-      username: username,
-      orgName: orgName
-    },
-    app.get("secret")
-  );
-  let response = await helper.getRegisteredUser(username, orgName, true);
-  logger.debug(
-    "-- returned from registering the username %s for organization %s",
-    username,
-    orgName
-  );
-  if (response && typeof response !== "string") {
-    logger.debug(
-      "Successfully registered the username %s for organization %s",
-      username,
-      orgName
-    );
-    response.token = token;
-    res.json(response);
-  } else {
-    logger.debug(
-      "Failed to register the username %s for organization %s with::%s",
-      username,
-      orgName,
-      response
-    );
-    res.json({ success: false, message: response });
-  }
+app.get("/certificate/pending",async function(req,res){
+  console.log('show pending certificats')
+  try{
+    const pending= await cert.pendingCert()
+    res.send(pending)
+} catch(e){
+    res.status(500).send()
+}
 });
-// Create Channel
+
+// show approved certificats
+
+app.get("/certificate/approved",async function(req,res){
+  console.log('show approved certificats')
+  try{
+    const approved= await cert.approvedCert()
+    res.send(approved)
+} catch(e){
+    res.status(500).send()
+}
+});
+
+// show rejected certificats
+
+app.get("/certificate/rejected",async function(req,res){
+  console.log('show rejected certificats')
+  try{
+    const rejected= await cert.rejectedCert()
+    res.send(rejected)
+} catch(e){
+    res.status(500).send()
+}
+});
+
+// approve a certificate
+
+app.post("/approveCertificate", async function(
+  req,
+  res
+) {
+  logger.debug("==================== Generate Certificate ==================");
+  var peers = def.modules.endorsingPeers;
+  var chaincodeName = def.modules.chaincodeName;
+  var channelName = def.modules.channelName;
+  var fcn = createCertificate;
+  var args = req.body.args;
+  logger.debug("channelName  : " + channelName);
+  logger.debug("chaincodeName : " + chaincodeName);
+  logger.debug("fcn  : " + fcn);
+  logger.debug("args  : " + args);
+  if (!chaincodeName) {
+    res.json(getErrorMessage("'chaincodeName'"));
+    return;
+  }
+  if (!channelName) {
+    res.json(getErrorMessage("'channelName'"));
+    return;
+  }
+  if (!fcn) {
+    res.json(getErrorMessage("'fcn'"));
+    return;
+  }
+  if (!args) {
+    res.json(getErrorMessage("'args'"));
+    return;
+  }
+  await cert.approve()
+  let message = await invoke.invokeChaincode(
+    peers,
+    channelName,
+    chaincodeName,
+    fcn,
+    args,
+    req.username,
+    req.orgname
+  );
+  res.send(message);
+});
+
+
 app.post("/channels", async function(req, res) {
   logger.info("<<<<<<<<<<<<<<<<< C R E A T E  C H A N N E L >>>>>>>>>>>>>>>>>");
   logger.debug("End point : /channels");
@@ -360,6 +433,8 @@ app.post("/channels", async function(req, res) {
   );
   res.send(message);
 });
+
+
 // Join Channel
 app.post("/channels/:channelName/peers", async function(req, res) {
   logger.info("<<<<<<<<<<<<<<<<< J O I N  C H A N N E L >>>>>>>>>>>>>>>>>");
@@ -506,8 +581,6 @@ app.post("/channels/:channelName/chaincodes", async function(req, res) {
   );
   res.send(message);
 });
-
-
 // Invoke transaction on chaincode on target peers
 app.post("/channels/:channelName/chaincodes/:chaincodeName", async function(
   req,
